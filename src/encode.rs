@@ -136,7 +136,7 @@ impl ImageProcessor {
                 let mut encoded = Vec::new();
                 image.write_with_encoder(PngEncoder::new_with_quality(
                     &mut encoded,
-                    CompressionType::Best,
+                    CompressionType::Default,
                     <_>::default(),
                 ))?;
 
@@ -159,7 +159,7 @@ impl ImageProcessor {
                 let mut encoded = Vec::new();
                 image.write_with_encoder(AvifEncoder::new_with_speed_quality(
                     &mut encoded,
-                    1,
+                    5,
                     self.quality.round() as _,
                 ))?;
 

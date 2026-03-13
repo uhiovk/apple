@@ -5,6 +5,7 @@ pub const MAGIC: u32 = 0x1FEE1BAD;
 pub const VENDOR_STRING: &[u8] = b"Your PC";
 
 pub const DEFAULT_BITRATE: f32 = 128.0;
+pub const DEFAULT_COMPLEXITY: i32 = 10;
 pub const DEFAULT_QUALITY: f32 = 90.0;
 
 pub const PROGRESS_BAR_TEMPLATE: &str =

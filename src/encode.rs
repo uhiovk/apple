@@ -33,6 +33,7 @@ impl<W: Write> OpusOggEncoder<W> {
     pub fn new(
         decoded: DecodedData,
         bitrate: i32,
+        complexity: i32,
         image_processor: &mut ImageProcessor,
         writer: W,
     ) -> Result<Self> {
@@ -47,6 +48,7 @@ impl<W: Write> OpusOggEncoder<W> {
 
         let mut encoder = OpusEncoder::new(SAMPLE_RATE as _, channels, Application::Audio)?;
         encoder.set_bitrate(Bitrate::Bits(bitrate))?;
+        encoder.set_complexity(complexity)?;
 
         let mut packet_writer = PacketWriter::new(writer);
 

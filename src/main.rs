@@ -11,7 +11,9 @@ use indicatif::{ProgressBar, ProgressStyle};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use walkdir::WalkDir;
 
-use crate::consts::{DEFAULT_BITRATE, DEFAULT_QUALITY, PROGRESS_BAR_CHARS, PROGRESS_BAR_TEMPLATE};
+use crate::consts::{
+    DEFAULT_BITRATE, DEFAULT_COMPLEXITY, DEFAULT_QUALITY, PROGRESS_BAR_CHARS, PROGRESS_BAR_TEMPLATE,
+};
 use crate::decode::DecodedData;
 use crate::encode::{ImageFormat, ImageProcessor, OpusOggEncoder};
 
@@ -29,16 +31,19 @@ struct Cli {
     #[arg(long)]
     quiet: bool,
 
-    /// Opus bitrate in kbps
+    /// Opus bitrate in kbps, default is 128.0
     #[arg(short, long)]
     bitrate: Option<f32>,
+    /// Opus encoding complexity, value from 1 to 10, default is 10
+    #[arg(short, long)]
+    complexity: Option<i32>,
     /// Image format, possible values are copy/png/jpeg/webp/avif, default is copy
     #[arg(short, long)]
     format: Option<String>,
     /// Target dimensions of cover images, in the format `WxH`. No resizing by default
     #[arg(short, long = "img-dims")]
     dimensions: Option<String>,
-    /// Image encoding quality, value from 0.0 to 100.0
+    /// Image encoding quality, value from 0.0 to 100.0, default is 90.0
     #[arg(short, long)]
     quality: Option<f32>,
 }
@@ -55,6 +60,14 @@ fn main() -> Result<()> {
     ensure!(bitrate_kbps >= 6.0, "bitrate {}kbps is too low", bitrate_kbps);
     ensure!(bitrate_kbps <= 256.0, "bitrate {}kbps is too high", bitrate_kbps);
     let bitrate = (bitrate_kbps * 1000.0).round() as _;
+
+    let complexity = params.complexity.unwrap_or_else(|| {
+        if !params.quiet {
+            eprintln!("Using default complexity: {}", DEFAULT_COMPLEXITY);
+        }
+        DEFAULT_COMPLEXITY
+    });
+    ensure!(matches!(complexity, 1..=10), "complexity should be in range 1-10");
 
     let target_format =
         match params.format.as_deref().unwrap_or("copy").to_ascii_lowercase().as_str() {
@@ -124,6 +137,7 @@ fn main() -> Result<()> {
             let mut encoder = OpusOggEncoder::new(
                 decoded,
                 bitrate,
+                complexity,
                 &mut ImageProcessor { target_format, new_dimensions, quality },
                 new_file,
             )?;

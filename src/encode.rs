@@ -52,9 +52,7 @@ impl<W: Write> OpusOggEncoder<W> {
 
         let mut packet_writer = PacketWriter::new(writer);
 
-        let image =
-            decoded.cover_image.as_ref().map(|img| image_processor.process(img)).transpose()?;
-
+        let image = decoded.cover_image.as_ref().and_then(|img| image_processor.process(img).ok());
         let id_header = build_ogg_id_header(num_channels, encoder.get_lookahead()?);
         let comment_header = build_ogg_comment_header(&decoded.metadata, image);
         packet_writer.write_packet(id_header, MAGIC, PacketWriteEndInfo::EndPage, 0)?;

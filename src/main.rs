@@ -5,7 +5,7 @@ mod encode;
 use std::fs::{File, create_dir_all, remove_file};
 use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow, bail, ensure};
+use anyhow::{Error, Result, anyhow, bail, ensure};
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -117,39 +117,44 @@ fn main() -> Result<()> {
 
     files
         .into_par_iter()
-        .map(|path| {
-            let decoded_result = if path.extension().unwrap() == "ncm" {
-                DecodedData::from_ncm_file(&path)
-            } else {
-                DecodedData::from_file(&path)
-            };
+        .map(|path| -> Result<Option<(Error, _, _)>> {
+            macro_rules! unwrap {
+                ($val:expr, $new_path:expr) => {
+                    match $val {
+                        Ok(val) => val,
+                        Err(err) if params.skip_errors => {
+                            return Ok(Some((err.into(), path, $new_path)))
+                        }
+                        Err(err) => return Err(err.into()),
+                    }
+                };
+            }
 
-            let decoded = match decoded_result {
-                Ok(d) => d,
-                Err(err) if params.skip_errors => return Ok(Some((err, path, None))),
-                Err(err) => return Err(err),
-            };
+            let decoded = unwrap!(
+                if path.extension().unwrap() == "ncm" {
+                    DecodedData::from_ncm_file(&path)
+                } else {
+                    DecodedData::from_file(&path)
+                },
+                None
+            );
 
             let new_filename = Path::new(path.file_name().unwrap()).with_extension("opus");
             let new_path = params.output.join(new_filename);
-            let new_file = File::create(&new_path)?;
+            let new_file = unwrap!(File::create(&new_path), None);
 
-            let mut encoder = OpusOggEncoder::new(
-                decoded,
-                bitrate,
-                complexity,
-                &mut ImageProcessor { target_format, new_dimensions, quality },
-                new_file,
-            )?;
+            let mut encoder = unwrap!(
+                OpusOggEncoder::new(
+                    decoded,
+                    bitrate,
+                    complexity,
+                    &mut ImageProcessor { target_format, new_dimensions, quality },
+                    new_file,
+                ),
+                Some(new_path)
+            );
 
-            loop {
-                match encoder.write_packet() {
-                    Ok(true) => {}
-                    Ok(false) => break,
-                    Err(err) if params.skip_errors => return Ok(Some((err, path, Some(new_path)))),
-                    Err(err) => return Err(err),
-                }
-            }
+            while unwrap!(encoder.write_packet(), Some(new_path)) {}
 
             Ok(None)
         })

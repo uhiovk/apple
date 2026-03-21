@@ -94,20 +94,34 @@ impl DecodedData {
         let mut metadata = Metadata::default();
         let mut cover_image = None;
 
-        if let Some(meta) = format_reader.metadata().current() {
-            for tag in meta.tags() {
-                match tag.std_key {
-                    Some(TrackTitle) => metadata.title = Some(tag.value.to_string()),
-                    Some(Artist) => metadata.artist = Some(tag.value.to_string()),
-                    Some(Album) => metadata.album = Some(tag.value.to_string()),
-                    Some(TrackNumber) => metadata.track_number = Some(tag.value.to_string()),
-                    _ => {}
+        macro_rules! extract_tags {
+            ($meta:expr) => {
+                for tag in $meta.tags() {
+                    match tag.std_key {
+                        Some(TrackTitle) => metadata.title = Some(tag.value.to_string()),
+                        Some(Artist) => metadata.artist = Some(tag.value.to_string()),
+                        Some(Album) => metadata.album = Some(tag.value.to_string()),
+                        Some(TrackNumber) => metadata.track_number = Some(tag.value.to_string()),
+                        _ => {}
+                    }
                 }
-            }
 
-            if let [visual, ..] = meta.visuals() {
-                cover_image = Some(visual.data.to_vec());
-            }
+                if let [visual, ..] = $meta.visuals() {
+                    cover_image = Some(visual.data.to_vec());
+                }
+            };
+        }
+
+        // MP3 tags
+        if let Some(mut metadata_log) = probed.metadata.into_inner()
+            && let Some(meta) = metadata_log.metadata().current()
+        {
+            extract_tags!(meta);
+        }
+
+        // other formats' tags
+        if let Some(meta) = format_reader.metadata().current() {
+            extract_tags!(meta);
         }
 
         let audio = Audio {

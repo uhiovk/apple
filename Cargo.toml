@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.101"
+anyhow = "1.0.102"
 audioadapter-buffers = "2.0.0"
 base64 = "0.22.1"
-clap = { version = "4.5.59", features = ["derive"] }
-image = { version = "0.25.9", default-features = false, features = [
+clap = { version = "4.6.0", features = ["derive"] }
+image = { version = "0.25.10", default-features = false, features = [
     "jpeg",
     "png",
     "webp",

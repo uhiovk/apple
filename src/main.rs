@@ -22,7 +22,6 @@ struct Cli {
     /// Directory of files to be processed. Scanned recursively
     source: PathBuf,
     /// Directory to store the results
-    #[arg(short, long)]
     output: PathBuf,
     /// Skip files that failed to be processed
     #[arg(short, long)]

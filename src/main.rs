@@ -165,8 +165,10 @@ fn main() -> Result<()> {
                 }
 
                 if !params.quiet {
-                    eprintln!("Error when processing file: {}", path.display());
-                    eprintln!("Error: {}", err);
+                    progress_bar.suspend(|| {
+                        eprintln!("Error when processing file: {}", path.display());
+                        eprintln!("Error: {}", err);
+                    });
                 }
             }
             result.map(|_| ())

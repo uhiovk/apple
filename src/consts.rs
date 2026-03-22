@@ -9,5 +9,5 @@ pub const DEFAULT_COMPLEXITY: i32 = 10;
 pub const DEFAULT_QUALITY: f32 = 90.0;
 
 pub const PROGRESS_BAR_TEMPLATE: &str =
-    "[{bar:50}] {elapsed_precise}/{eta_precise} {pos}/{len} {percent}%";
-pub const PROGRESS_BAR_CHARS: &str = "##-";
+    "[{bar:60}] {elapsed_precise}/{eta_precise} {pos}/{len} {percent}%";
+pub const PROGRESS_BAR_CHARS: &str = "#>-";

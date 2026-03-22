@@ -2,13 +2,16 @@ mod consts;
 mod decode;
 mod encode;
 
-use std::fs::{File, create_dir_all, remove_file};
+use std::fs::{File, OpenOptions, create_dir_all, remove_file};
+use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 use anyhow::{Error, Result, anyhow, bail, ensure};
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use regex::Regex;
 use walkdir::WalkDir;
 
 use crate::consts::{
@@ -23,6 +26,10 @@ struct Cli {
     source: PathBuf,
     /// Directory to store the results
     output: PathBuf,
+
+    /// Whether to overwrite existing files
+    #[arg(short, long)]
+    overwrite: bool,
     /// Skip files that failed to be processed
     #[arg(short, long)]
     skip_errors: bool,
@@ -139,8 +146,27 @@ fn main() -> Result<()> {
             );
 
             let new_filename = Path::new(path.file_name().unwrap()).with_extension("opus");
-            let new_path = params.output.join(new_filename);
-            let new_file = unwrap!(File::create(&new_path), None);
+            let mut new_path = params.output.join(&new_filename);
+            let mut overwritten_or_filename_altered = false;
+            let new_file = if params.overwrite {
+                if new_path.exists() {
+                    overwritten_or_filename_altered = true;
+                }
+                unwrap!(File::create(&new_path), None)
+            } else {
+                let mut new_stem = new_filename.file_stem().unwrap().to_str().unwrap().to_string();
+                loop {
+                    match OpenOptions::new().write(true).create_new(true).open(&new_path) {
+                        Ok(file) => break file,
+                        Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                            new_stem = rename_advance_number(&new_stem);
+                            new_path = params.output.join(format!("{new_stem}.opus"));
+                            overwritten_or_filename_altered = true;
+                        }
+                        Err(e) => unwrap!(Err(e), None),
+                    }
+                }
+            };
 
             let mut encoder = unwrap!(
                 OpusOggEncoder::new(
@@ -154,6 +180,20 @@ fn main() -> Result<()> {
             );
 
             while unwrap!(encoder.write_packet(), Some(new_path)) {}
+
+            if overwritten_or_filename_altered {
+                let og_filename = path.file_name().unwrap().to_str().unwrap();
+                let new_filename = new_path.file_name().unwrap().to_str().unwrap();
+                if params.overwrite {
+                    progress_bar.suspend(|| {
+                        println!("{} saved as and overwrote {}", og_filename, new_filename);
+                    });
+                } else {
+                    progress_bar.suspend(|| {
+                        println!("{} saved as {}", og_filename, new_filename);
+                    });
+                }
+            }
 
             Ok(None)
         })
@@ -177,4 +217,17 @@ fn main() -> Result<()> {
     progress_bar.finish_and_clear();
 
     Ok(())
+}
+
+fn rename_advance_number(filename: impl AsRef<str>) -> String {
+    static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(.*) \((\d+)\)$").unwrap());
+
+    let filename = filename.as_ref();
+    if let Some(captures) = PATTERN.captures(filename) {
+        let stem = captures.get(1).unwrap().as_str();
+        let new_number = captures.get(2).unwrap().as_str().parse::<usize>().unwrap() + 1;
+        format!("{stem} ({new_number})")
+    } else {
+        format!("{filename} (1)")
+    }
 }

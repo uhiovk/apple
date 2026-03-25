@@ -5,13 +5,11 @@ mod encode;
 use std::fs::{File, OpenOptions, create_dir_all, remove_file};
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
 
 use anyhow::{Error, Result, anyhow, bail, ensure};
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use regex::Regex;
 use walkdir::WalkDir;
 
 use crate::consts::{
@@ -27,7 +25,7 @@ struct Cli {
     /// Directory to store the results
     output: PathBuf,
 
-    /// Whether to overwrite existing files
+    /// Overwrite existing files
     #[arg(short, long)]
     overwrite: bool,
     /// Skip files that failed to be processed
@@ -154,13 +152,23 @@ fn main() -> Result<()> {
                 }
                 unwrap!(File::create(&new_path), None)
             } else {
-                let mut new_stem = new_filename.file_stem().unwrap().to_str().unwrap().to_string();
+                let mut new_stem = new_filename.file_stem().unwrap().to_string_lossy().into_owned();
                 loop {
                     match OpenOptions::new().write(true).create_new(true).open(&new_path) {
                         Ok(file) => break file,
                         Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
-                            new_stem = rename_advance_number(&new_stem);
-                            new_path = params.output.join(format!("{new_stem}.opus"));
+                            // add a number prefix to the filename stem
+                            // for example, "thing" renamed to "thing (1)" and "thing (41)" to "thing (42)"
+                            if let Some(left) = new_stem.strip_suffix(')')
+                                && let Some((stem, num_str)) = left.rsplit_once('(')
+                                && let Ok(n) = num_str.parse::<usize>()
+                            {
+                                new_stem = format!("{stem}({})", n + 1);
+                            } else {
+                                new_stem = format!("{new_stem} (1)");
+                            }
+                            new_path.set_file_name(&new_stem);
+                            new_path.add_extension(".opus");
                             overwritten_or_filename_altered = true;
                         }
                         Err(e) => unwrap!(Err(e), None),
@@ -182,8 +190,8 @@ fn main() -> Result<()> {
             while unwrap!(encoder.write_packet(), Some(new_path)) {}
 
             if overwritten_or_filename_altered {
-                let og_filename = path.file_name().unwrap().to_str().unwrap();
-                let new_filename = new_path.file_name().unwrap().to_str().unwrap();
+                let og_filename = path.file_name().unwrap().display();
+                let new_filename = new_path.file_name().unwrap().display();
                 if params.overwrite {
                     progress_bar.suspend(|| {
                         println!("{} saved as and overwrote {}", og_filename, new_filename);
@@ -217,17 +225,4 @@ fn main() -> Result<()> {
     progress_bar.finish_and_clear();
 
     Ok(())
-}
-
-fn rename_advance_number(filename: impl AsRef<str>) -> String {
-    static PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(.*) \((\d+)\)$").unwrap());
-
-    let filename = filename.as_ref();
-    if let Some(captures) = PATTERN.captures(filename) {
-        let stem = captures.get(1).unwrap().as_str();
-        let new_number = captures.get(2).unwrap().as_str().parse::<usize>().unwrap() + 1;
-        format!("{stem} ({new_number})")
-    } else {
-        format!("{filename} (1)")
-    }
 }

@@ -17,7 +17,7 @@ image = { version = "0.25.10", default-features = false, features = [
 indicatif = { version = "0.18.4", features = ["rayon"] }
 ncmdump = "0.8.0"
 ogg = "0.9.2"
-opus2 = { version = "0.3.3", features = ["bundled"] }
+opus2 = { version = "0.4.0", features = ["bundled"] }
 rayon = "1.11.0"
 ringbuf = "0.4.8"
 rubato = "1.0.1"

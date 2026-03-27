@@ -28,6 +28,9 @@ struct Cli {
     /// Overwrite existing files
     #[arg(short, long)]
     overwrite: bool,
+    /// Skip files with existing target files
+    #[arg(short = 'n', long)]
+    only_new: bool,
     /// Skip files that failed to be processed
     #[arg(short, long)]
     skip_errors: bool,
@@ -142,6 +145,11 @@ fn main() -> Result<()> {
                     Err(err) => return Err(err.into()),
                 }
             };
+        }
+
+        if params.only_new && path.exists() {
+            log!("Skipping file: {}", path.display());
+            return Ok(());
         }
 
         let decoded = unwrap!(if path.extension().unwrap() == "ncm" {

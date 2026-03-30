@@ -146,11 +146,6 @@ fn main() -> Result<()> {
             };
         }
 
-        if params.only_new && path.exists() {
-            log!("Skipping file: {}", path.display());
-            return Ok(());
-        }
-
         let decoded = unwrap!(if path.extension().unwrap() == "ncm" {
             DecodedData::from_ncm_file(&path)
         } else {
@@ -160,6 +155,11 @@ fn main() -> Result<()> {
         let filename = Path::new(path.file_name().unwrap());
         let mut new_path = params.output.join(filename);
         new_path.set_extension("opus");
+
+        if params.only_new && new_path.exists() {
+            log!("Skipping file: {}", path.display());
+            return Ok(());
+        }
 
         let mut overwritten_or_filename_altered = false;
         let new_file = if params.overwrite {

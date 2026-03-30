@@ -54,7 +54,7 @@ impl<W: Write> OpusOggEncoder<W> {
 
         let image = decoded.cover_image.as_ref().and_then(|img| image_processor.process(img).ok());
         let id_header = build_ogg_id_header(num_channels, encoder.get_lookahead()?);
-        let comment_header = build_ogg_comment_header(&decoded.metadata, image);
+        let comment_header = build_ogg_comment_header(&decoded.metadata, image.as_ref());
         packet_writer.write_packet(id_header, MAGIC, PacketWriteEndInfo::EndPage, 0)?;
         packet_writer.write_packet(comment_header, MAGIC, PacketWriteEndInfo::EndPage, 0)?;
 
@@ -198,7 +198,7 @@ fn build_ogg_id_header(num_channels: usize, pre_skip: i32) -> Vec<u8> {
     header
 }
 
-fn build_ogg_comment_header(metadata: &Metadata, image: Option<Image>) -> Vec<u8> {
+fn build_ogg_comment_header(metadata: &Metadata, image: Option<&Image>) -> Vec<u8> {
     let mut header = Vec::new();
 
     header.extend(b"OpusTags");
@@ -230,7 +230,7 @@ fn build_ogg_comment_header(metadata: &Metadata, image: Option<Image>) -> Vec<u8
         buffer.extend(24_u32.to_be_bytes()); // color depth
         buffer.extend(0_u32.to_be_bytes()); // 0 for non-indexed pictures (non-GIF)
         buffer.extend((data.len() as u32).to_be_bytes());
-        buffer.extend(&*data);
+        buffer.extend(&**data);
 
         let encoded = BASE64_STANDARD.encode(buffer);
         comments.push(format!("METADATA_BLOCK_PICTURE={encoded}"));

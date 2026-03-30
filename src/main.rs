@@ -70,8 +70,7 @@ fn main() -> Result<()> {
         log!("Using default bitrate: {}kbps", DEFAULT_BITRATE);
         DEFAULT_BITRATE
     });
-    ensure!(bitrate_kbps >= 6.0, "bitrate {}kbps is too low", bitrate_kbps);
-    ensure!(bitrate_kbps <= 256.0, "bitrate {}kbps is too high", bitrate_kbps);
+    ensure!(matches!(bitrate_kbps, 6.0..=256.0), "bitrate should be in range 6.0-256.0");
     let bitrate = (bitrate_kbps * 1000.0).round() as _;
 
     let complexity = params.complexity.unwrap_or_else(|| {

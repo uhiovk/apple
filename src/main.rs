@@ -2,7 +2,7 @@ mod consts;
 mod decode;
 mod encode;
 
-use std::fs::{File, OpenOptions, create_dir_all, remove_file};
+use std::fs::{File, create_dir_all, remove_file};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -168,7 +168,7 @@ fn main() -> Result<()> {
         } else {
             let mut new_stem = filename.file_stem().unwrap().to_string_lossy().into_owned();
             loop {
-                match OpenOptions::new().write(true).create_new(true).open(&new_path) {
+                match File::create_new(&new_path) {
                     Ok(file) => break file,
                     Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
                         // add a number prefix to the filename stem
@@ -204,7 +204,7 @@ fn main() -> Result<()> {
             decoded,
             bitrate,
             complexity,
-            &mut ImageProcessor { target_format, new_dimensions, quality },
+            ImageProcessor { target_format, new_dimensions, quality },
             new_file,
         ));
 

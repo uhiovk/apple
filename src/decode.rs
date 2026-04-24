@@ -49,8 +49,6 @@ pub struct Metadata {
     pub track_number: Option<String>,
 }
 
-const INPUT_BUFFER_CAPACITY: usize = 1024 * 64;
-
 impl DecodedData {
     pub fn from_reader(source: impl MediaSource + 'static, frame_size: usize) -> Result<Self> {
         let mss = MediaSourceStream::new(Box::new(source), <_>::default());
@@ -88,7 +86,7 @@ impl DecodedData {
 
         let mut input_buffer = Vec::with_capacity(num_channels);
         for _ in 0..num_channels {
-            input_buffer.push(LocalRb::new(INPUT_BUFFER_CAPACITY));
+            input_buffer.push(LocalRb::new(64 << 10));
         }
 
         let mut metadata = Metadata::default();

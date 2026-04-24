@@ -24,17 +24,15 @@ pub struct OpusOggEncoder<W: Write> {
     frame_size: usize,
 
     input_buffer: Vec<f32>,
-    output_buffer: [u8; BUFFER_CAPACITY],
+    output_buffer: [u8; 4 << 10],
 }
-
-const BUFFER_CAPACITY: usize = 4096;
 
 impl<W: Write> OpusOggEncoder<W> {
     pub fn new(
         decoded: DecodedData,
         bitrate: i32,
         complexity: i32,
-        image_processor: &mut ImageProcessor,
+        image_processor: ImageProcessor,
         writer: W,
     ) -> Result<Self> {
         let num_channels = decoded.audio.num_channels();
@@ -65,7 +63,7 @@ impl<W: Write> OpusOggEncoder<W> {
             packet_writer,
             frame_size,
             input_buffer: vec![0.0; num_channels * frame_size],
-            output_buffer: [0; BUFFER_CAPACITY],
+            output_buffer: [0; _],
         })
     }
 
@@ -110,7 +108,7 @@ pub struct ImageProcessor {
 }
 
 impl ImageProcessor {
-    fn process<'a>(&mut self, data: &'a [u8]) -> Result<Image<'a>> {
+    fn process<'a>(&self, data: &'a [u8]) -> Result<Image<'a>> {
         use ImageFormat::*;
         match self.target_format {
             Copy => {

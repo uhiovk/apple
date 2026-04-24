@@ -5,9 +5,8 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
-audioadapter-buffers = "2.0.0"
 base64 = "0.22.1"
-clap = { version = "4.6.0", features = ["derive"] }
+clap = { version = "4.6.1", features = ["derive"] }
 image = { version = "0.25.10", default-features = false, features = [
     "jpeg",
     "png",
@@ -20,9 +19,9 @@ ogg = "0.9.2"
 opus2 = { version = "0.4.0", default-features = false, features = [
     "backend-mousiki",
 ] }
-rayon = "1.11.0"
+rayon = "1.12.0"
 ringbuf = "0.4.8"
-rubato = "1.0.1"
+rubato = "2.0.0"
 symphonia = { version = "0.5.5", default-features = false, features = [
     "flac",
     "mp3",

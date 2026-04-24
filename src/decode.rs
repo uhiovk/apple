@@ -5,11 +5,11 @@ use std::io::ErrorKind::UnexpectedEof;
 use std::path::Path;
 
 use anyhow::{Result, anyhow, ensure};
-use audioadapter_buffers::direct::{InterleavedSlice, SequentialSlice};
 use ncmdump::Ncmdump;
 use ringbuf::LocalRb;
 use ringbuf::storage::Heap;
 use ringbuf::traits::{Consumer, Observer, Producer};
+use rubato::audioadapter_buffers::direct::{InterleavedSlice, SequentialSlice};
 use rubato::{Fft, FixedSync, Resampler};
 use symphonia::core::audio::{AudioBuffer, AudioBufferRef, Signal};
 use symphonia::core::codecs::{CODEC_TYPE_NULL, Decoder};
